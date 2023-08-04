@@ -10,6 +10,13 @@ vim.opt.completeopt = ""
 vim.cmd "set guifont=Consolas:h16"
 
 
+--autoreload files
+vim.opt.autoread = true
+vim.api.nvim_exec("au FocusGained,BufEnter * :silent! !", false) --forces autoread to work
+vim.api.nvim_exec("au FocusLost,WinLeave * :silent! w", false)   --saves on exit
+
+
+
 function map(mode, shortcut, command)
   vim.api.nvim_set_keymap(mode, shortcut, command, { noremap = true, silent = true })
 end
@@ -73,13 +80,25 @@ vim.api.nvim_exec("nnoremap <C-Tab> ==", false)
 vim.api.nvim_exec("inoremap <S-Tab> <C-d>", false)
 vim.api.nvim_exec("inoremap <C-Tab> <C-o>==", false)
 
+vim.api.nvim_exec("vnoremap <Tab>   >gv", false)
+vim.api.nvim_exec("vnoremap <S-Tab> <gv", false)
+vim.api.nvim_exec("vnoremap <C-Tab> =gv", false)
+
+
 --vim.api.nvim_exec("inoremap <A-i> {}<Left><cr><C-o>O", false)
 vim.api.nvim_exec("inoremap <A-i> <cr><C-o>O", false) -- expand braces and indent
 
+-- make cases align with switch statement and don't add extra indentation to case braces
 vim.opt.cinoptions = "l1, :0"
+
+-- center screen to current line
+imap('<A-l>', '<C-o>zz')   
+nmap('<C-l>', 'zz')   
+vmap('<C-l>', 'zz')   
 
 
 --toggle between .h and .cpp files
+--vim.opt.statusline = "%t" --only emit filename
 vim.api.nvim_exec("inoremap <C-k> <C-o>:find %:p:s,.h$,.X123X,:s,.cpp$,.h,:s,.X123X$,.cpp,<CR>", false) -- line start
 vim.api.nvim_exec("nnoremap <C-k> :find %:p:s,.h$,.X123X,:s,.cpp$,.h,:s,.X123X$,.cpp,<CR>", false) -- line start
 
@@ -90,9 +109,7 @@ imap('<C-d>', '<C-o>:stopinsert<CR>')
 imap('<C-j>', '<C-p>')
 imap('<C-,>', '_')
 imap('<C-.>', '->')
-imap('<C-BS>', '<C-w>')
-imap('<C-BS>', '<C-w>')
-imap('<C-Del>', '<C-o>"_dw')
+
 
 --incremental search
 --imap('<C-f>', '<C-o>/')
@@ -110,6 +127,30 @@ vim.api.nvim_exec("autocmd BufEnter * cnoremap <buffer><nowait> <C-f> <C-g>", fa
 vim.api.nvim_exec("autocmd BufEnter * cnoremap <buffer><nowait> <C-r> <C-t>", false) 
 
 
+backspace_word_part = function()
+	vim.opt.iskeyword:remove("_")
+	vim.cmd('normal! h"_dvb')
+	--vim.cmd('normal! <C-w>')
+	vim.opt.iskeyword:append("_")
+end
+
+delete_word_part = function()
+	vim.opt.iskeyword:remove("_")
+	vim.cmd('normal! "_dvw')
+	vim.opt.iskeyword:append("_")
+end
+
+--imap('<C-BS>', '<C-w>')
+vim.keymap.set("i", "<C-BS>",  backspace_word_part, { noremap = true })
+vim.keymap.set("i", "<C-Del>", delete_word_part, { noremap = true })
+vim.keymap.set("n", "<C-BS>",  backspace_word_part, { noremap = true })
+vim.keymap.set("n", "<C-Del>", delete_word_part, { noremap = true })
+--imap('<C-BS>', backspace_word_part)
+--imap('<C-Del>', '<C-o>"_dw')
+
+
+
+
 --navigation
 nmap('w', 'h')   -- h left
 nmap('r', 'l')   -- l right
@@ -117,6 +158,8 @@ nmap('s', 'b')   -- word back
 nmap('f', 'e')   -- word forward to end
 nmap('e', 'k')   -- k up
 nmap('d', 'j')   -- j down
+
+
 
 nmap('<Enter>', 'i<Enter><C-o>:stopinsert<CR>')
 --nmap('O', 'O<ESC>0"_D');
@@ -152,7 +195,8 @@ vim.api.nvim_exec("autocmd BufEnter * vnoremap <buffer><nowait> g g$", false) --
 
 
 
-
+vmap('<C-/>', ':norm I//<CR>')
+vmap('<A-/>', ':norm ^xx<CR>')
 
 
 vmap('<Space>',   '<ESC>')
@@ -164,9 +208,10 @@ vmap('c', 'y`]') --copy (yank) and move cursor to where it was
 vim.api.nvim_exec("nnoremap <nowait> v Pl", false) -- move left, paste then move right
 
 
+
 --expand selection to brace pair
-nmap('\'',   'vaB')
-vmap('\'',   'aB')
+nmap('\'',   'vaBo')
+vmap('\'',   'aBo')
 
 --expand selection to parenthesis pair
 vim.api.nvim_exec("nnoremap <nowait> 9 vib", false) 
@@ -176,6 +221,8 @@ vim.api.nvim_exec("nnoremap <nowait> <C-9> vab", false)
 vim.api.nvim_exec("vnoremap <nowait> <C-9> ab", false) 
 
 
+--make vim-cool work
+vim.opt.hlsearch = true
 
 vim.call('plug#begin', '~/AppData/Local/nvim/plugged')
 -- what about Plug?...
@@ -187,7 +234,10 @@ Plug 'nvim-telescope/telescope-file-browser.nvim'
 Plug 'vim-airline/vim-airline'
 Plug 'karb94/neoscroll.nvim'
 Plug 'sainnhe/everforest'
+Plug 'romainl/vim-cool'
 vim.call('plug#end')
+
+vim.cmd "let g:airline#extensions#tabline#fnamemod = ':t'"
 
 vim.cmd "colorscheme everforest"
 
@@ -238,9 +288,14 @@ require("telescope").load_extension "file_browser"
 -- file broswer stuff
 --vim.keymap.set("i", "<A-o>", "<C-o>:Telescope find_files<CR>",   {noremap = true}) --doesn't work for some reason
 vim.keymap.set("i", "<C-o>", "<ESC>:Telescope file_browser<CR>", { noremap = true })
-vim.keymap.set("i", "<C-b>", "<ESC>:Telescope buffers<CR>", { noremap = true })
+--vim.keymap.set("i", "<C-b>", "<ESC>:Telescope buffers<CR>", { noremap = true })
 vim.keymap.set("n", "<C-o>", ":Telescope file_browser<CR>", { noremap = true })
-vim.keymap.set("n", "<C-b>", ":Telescope buffers<CR>", { noremap = true })
+
+--local builtin = require('telescope.builtin')
+local buffer_viewer_fn = function() require('telescope.builtin').buffers({sort_mru=true, ignore_current_buffer=true}) end
+vim.keymap.set("i", "<C-b>", buffer_viewer_fn, { noremap = true })
+vim.keymap.set("n", "<C-b>", buffer_viewer_fn, { noremap = true })
+--vim.keymap.set("n", "<C-b>", ":Telescope buffers<CR>", { noremap = true })
 
 
 
